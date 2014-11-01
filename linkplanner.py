@@ -27,6 +27,30 @@ class LINK(object):
         self._distance = 10
         self._cfactor = 0.5
         self._tfactor = 1.0
+        # Some defaults not exposed in UI yet
+        # Somewhat safe value for temperate regions
+        self._kfactor = 1.33
+        # Atmosperic absorbtion ITU-R p.676
+        # Over simplified as it's low below 10Ghz
+        # Later we need a lookup table
+        # 10Ghz 0.01dB/Km 
+        # 20Ghz 0.1dB/Km
+        # 24Ghz 0.2dB/Km
+        # 38Ghz 0.12dB/Km
+        # 60Ghz ~ 15dB/Km
+        self._atmatten = 0.01
+        # Humidity ITU-R p.836
+        # 
+        # see rain, ITU-R pn.837-1
+        # Ireland = H 
+        # H .001% = 32mm/h
+        # Later we should accept region codes
+        # then use a lookup table
+        # when we do the below value should be set inside the object
+        self._rainfall = 32
+        self._rczone = 'H'
+
+
 #        self._c = 3e8
 
     def getFrequency(self):
@@ -157,10 +181,20 @@ class LINK(object):
     tfactor = property(getTfactor, setTfactor)
 
     def exportLink(self, f):
-        ploss = 10 * math.log10((self.C ** 2) / ((4 * math.pi * self.distance * 1e3 * self.frequency * 1e6) ** 2 ))
+
+        # free space losses calulation done in MHz 
+        fsl = 32.44 + 20 * math.log10(self.frequency) + 20 * math.log10(self.distance)
+        # Atmospehric attenuation 
+        aatt = self.distance * self._atmatten
+        ploss = fsl + aatt  
         erp = self.txpower + self.txgain - self.feedloss 
-        rxsig = erp + ploss + self.rxgain - self.feedloss 
+        rxsig = erp - ploss + self.rxgain - self.feedloss 
         margin = rxsig - self.rxsens
+        # this is horrible and needs to be rewitten to use ITU-R P.530-15
+        # but to get to meaningfull results we should be doing terrain profiles
+        # and extracting data from that. 
+        # below is a badly implemented over-simplifcation of Barnett-Vigants  
+        # basically a placeholder for someting better 
         avail = ( 1 - 2.5/1e6 * self.cfactor * self.tfactor * self.frequency / 1e3 * (self.distance / 1.6) ** 3 * 10 **( - margin / 10))
         if avail <= 0:
             avail = 0
