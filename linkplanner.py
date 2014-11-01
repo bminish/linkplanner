@@ -164,7 +164,10 @@ class LINK(object):
         avail = ( 1 - 2.5/1e6 * self.cfactor * self.tfactor * self.frequency / 1e3 * (self.distance / 1.6) ** 3 * 10 **( - margin / 10))
         if avail <= 0:
             avail = 0
-        outage = (525600 - avail * 525600) / 60
+        elif avail >=1:
+            avail = 1
+        avail = avail * 100
+        outage = (525600 - avail * 5256) / 60
 
         f.write("ERP in dBm       = %.1f\n" % erp)
         f.write("RSSI in dBm      = %.0f\n" % rxsig)
