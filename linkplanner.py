@@ -2,12 +2,12 @@
 #
 #
 # By brendan Minish (bminish@gmail.com) 2014 as a learning excercise
-# Licence GPL v3 
-# 
+# Licence GPL v3
+#
 
 
 import math
-import sys
+#import sys
 
 from StringIO import StringIO
 
@@ -15,7 +15,6 @@ from StringIO import StringIO
 class LINK(object):
     """ This is an instance of a wireless link"""
     C = 3e8
-
 
     def __init__(self):
         self._frequency = 5825
@@ -33,28 +32,27 @@ class LINK(object):
         # Atmosperic absorbtion ITU-R p.676
         # Over simplified as it's low below 10Ghz
         # Later we need a lookup table
-        # 10Ghz 0.01dB/Km 
+        # 10Ghz 0.01dB/Km
         # 20Ghz 0.1dB/Km
         # 24Ghz 0.2dB/Km
         # 38Ghz 0.12dB/Km
         # 60Ghz ~ 15dB/Km
         self._atmatten = 0.01
         # Humidity ITU-R p.836
-        # 
+        #
         # see rain, ITU-R pn.837-1
-        # Ireland = H 
+        # Ireland = H
         # H .001% = 32mm/h
         # Later we should accept region codes
         # then use a lookup table
         # when we do the below value should be set inside the object
         self._rainfall = 32
         self._rczone = 'H'
-
-
 #        self._c = 3e8
 
     def getFrequency(self):
         return self._frequency
+
     def setFrequency(self, v):
         if v:
             try:
@@ -68,19 +66,21 @@ class LINK(object):
 
     def getTxpower(self):
         return self._txpower
+
     def setTxpower(self, v):
         if v:
             try:
                 x = float(v)
                 self._txpower = x
             except:
-                raise ValueError("TX power must be in dBm") 
+                raise ValueError("TX power must be in dBm")
         elif not v:
             pass
     txpower = property(getTxpower, setTxpower)
 
     def getFeedloss(self):
         return self._feedloss
+
     def setFeedloss(self, v):
         if v:
             try:
@@ -94,6 +94,7 @@ class LINK(object):
 
     def getRxgain(self):
         return self._rxgain
+
     def setRxgain(self, v):
         if v:
             try:
@@ -107,6 +108,7 @@ class LINK(object):
 
     def getTxgain(self):
         return self._txgain
+
     def setTxgain(self, v):
         if v:
             try:
@@ -117,9 +119,10 @@ class LINK(object):
         elif not v:
             pass
     txgain = property(getTxgain, setTxgain)
-    
+
     def getRxsens(self):
         return self._rxsens
+
     def setRxsens(self, v):
         if v:
             try:
@@ -133,6 +136,7 @@ class LINK(object):
 
     def getDistance(self):
         return self._distance
+
     def setDistance(self, v):
         if v:
             try:
@@ -146,6 +150,7 @@ class LINK(object):
 
     def getCfactor(self):
         return self._cfactor
+
     def setCfactor(self, v):
         if v:
             try:
@@ -158,11 +163,12 @@ class LINK(object):
                 raise ValueError("Climate factor must be between 0.1 (dry) and 0.5 (wet)")
         elif not v:
             pass
-               
+
     cfactor = property(getCfactor, setCfactor)
 
     def getTfactor(self):
         return self._tfactor
+
     def setTfactor(self, v):
         if v:
             try:
@@ -170,35 +176,37 @@ class LINK(object):
                 if x > 0.24 and x < 4.01:
                     self._tfactor = x
                 else:
-                   raise ValueError("Terrain factor between 0.25 (Mountains) and 4 (smooth)")
+                    raise ValueError("Terrain factor between 0.25 (Mountains) and 4 (smooth)")
             except:
                 raise ValueError("Terrain factor between 0.25 (Mountains) and 4 (smooth)")
         elif not v:
             pass
 
-
-
     tfactor = property(getTfactor, setTfactor)
 
     def exportLink(self, f):
 
-        # free space losses calulation done in MHz 
-        fsl = 32.44 + 20 * math.log10(self.frequency) + 20 * math.log10(self.distance)
-        # Atmospehric attenuation 
+        # free space losses calulation done in MHz
+        fsl = 32.44 + 20 * math.log10(self.frequency) \
+            + 20 * math.log10(self.distance)
+
+        # Atmospehric attenuation
         aatt = self.distance * self._atmatten
-        ploss = fsl + aatt  
-        erp = self.txpower + self.txgain - self.feedloss 
-        rxsig = erp - ploss + self.rxgain - self.feedloss 
+        ploss = fsl + aatt
+        erp = self.txpower + self.txgain - self.feedloss
+        rxsig = erp - ploss + self.rxgain - self.feedloss
         margin = rxsig - self.rxsens
         # this is horrible and needs to be rewitten to use ITU-R P.530-15
         # but to get to meaningfull results we should be doing terrain profiles
-        # and extracting data from that. 
-        # below is a badly implemented over-simplifcation of Barnett-Vigants  
-        # basically a placeholder for someting better 
-        avail = ( 1 - 2.5/1e6 * self.cfactor * self.tfactor * self.frequency / 1e3 * (self.distance / 1.6) ** 3 * 10 **( - margin / 10))
+        # and extracting data from that.
+        # below is a badly implemented over-simplifcation of Barnett-Vigants
+        # basically a placeholder for someting better
+        avail = (1 - 2.5/1e6 * self.cfactor * self.tfactor * self.frequency
+                 / 1e3 * (self.distance / 1.6) ** 3 * 10 ** (- margin / 10))
+
         if avail <= 0:
             avail = 0
-        elif avail >=1:
+        elif avail >= 1:
             avail = 1
         avail = avail * 100
         outage = (525600 - avail * 5256) / 60
@@ -330,11 +338,8 @@ def doInput(link):
                 continue
             break
 
-
-
-
         gotInput = True
-    
+
     f = StringIO()
     link.exportLink(f)
     print
@@ -342,10 +347,8 @@ def doInput(link):
     print(f.getvalue())
 
 
-
-
 def main():
-    
+
     link = LINK()
     doInput(link)
 
